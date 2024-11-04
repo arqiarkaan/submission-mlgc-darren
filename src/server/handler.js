@@ -1,19 +1,21 @@
 const predictClassification = require('../services/inferenceService');
 const crypto = require('crypto');
-const { storeData, getPredictionHistories } = require('../services/storeData');
 
 async function postPredictHandler(request, h) {
   const { image } = request.payload;
   const { model } = request.server.app;
 
-  const { label, suggestion } = await predictClassification(model, image);
+  const { confidenceScore, label, explanation, suggestion } =
+    await predictClassification(model, image);
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
 
   const data = {
     id: id,
     result: label,
+    explanation: explanation,
     suggestion: suggestion,
+    confidenceScore: confidenceScore,
     createdAt: createdAt,
   };
 
@@ -21,22 +23,14 @@ async function postPredictHandler(request, h) {
 
   const response = h.response({
     status: 'success',
-    message: 'Model is predicted successfully',
+    message:
+      confidenceScore > 99
+        ? 'Model is predicted successfully.'
+        : 'Model is predicted successfully but under threshold. Please use the correct picture',
     data,
   });
   response.code(201);
   return response;
 }
 
-async function getPredictHistoriesHandler(request, h) {
-  const histories = await getPredictionHistories();
-
-  const response = h.response({
-    status: 'success',
-    data: histories,
-  });
-  response.code(200);
-  return response;
-}
-
-module.exports = { postPredictHandler, getPredictHistoriesHandler };
+module.exports = postPredictHandler;

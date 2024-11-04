@@ -1,10 +1,9 @@
-// server.js
 require('dotenv').config();
 
 const Hapi = require('@hapi/hapi');
 const routes = require('../server/routes');
 const loadModel = require('../services/loadModel');
-const PredictionError = require('../exceptions/PredictionError');
+const InputError = require('../exceptions/InputError');
 
 (async () => {
   const server = Hapi.server({
@@ -13,9 +12,6 @@ const PredictionError = require('../exceptions/PredictionError');
     routes: {
       cors: {
         origin: ['*'],
-      },
-      payload: {
-        maxBytes: 1000000, // 1MB limit
       },
     },
   });
@@ -28,23 +24,21 @@ const PredictionError = require('../exceptions/PredictionError');
   server.ext('onPreResponse', function (request, h) {
     const response = request.response;
 
-    // Handle payload too large error
-    if (response.output && response.output.statusCode === 413) {
+    if (response instanceof InputError) {
       const newResponse = h.response({
         status: 'fail',
-        message: 'Payload content length greater than maximum allowed: 1000000',
+        message: `${response.message} Silakan gunakan foto lain.`,
       });
-      newResponse.code(413);
+      newResponse.code(response.statusCode);
       return newResponse;
     }
 
-    // Handle prediction-specific errors
-    if (response instanceof PredictionError) {
+    if (response.isBoom) {
       const newResponse = h.response({
         status: 'fail',
-        message: 'Terjadi kesalahan dalam melakukan prediksi',
+        message: response.message,
       });
-      newResponse.code(400);
+      newResponse.code(response.statusCode);
       return newResponse;
     }
 
