@@ -1,5 +1,4 @@
 require('dotenv').config();
-
 const Hapi = require('@hapi/hapi');
 const routes = require('../server/routes');
 const loadModel = require('../services/loadModel');
@@ -21,15 +20,15 @@ const InputError = require('../exceptions/InputError');
 
   server.route(routes);
 
-  server.ext('onPreResponse', function (request, h) {
+  server.ext('onPreResponse', (request, h) => {
     const response = request.response;
 
     if (response instanceof InputError) {
       const newResponse = h.response({
         status: 'fail',
-        message: `${response.message} Silakan gunakan foto lain.`,
+        message: 'Terjadi kesalahan dalam melakukan prediksi',
       });
-      newResponse.code(response.statusCode);
+      newResponse.code(400);
       return newResponse;
     }
 
@@ -38,7 +37,7 @@ const InputError = require('../exceptions/InputError');
         status: 'fail',
         message: response.message,
       });
-      newResponse.code(response.statusCode);
+      newResponse.code(response.output.statusCode);
       return newResponse;
     }
 
@@ -46,5 +45,5 @@ const InputError = require('../exceptions/InputError');
   });
 
   await server.start();
-  console.log(`Server start at: ${server.info.uri}`);
+  console.log(`Server started at: ${server.info.uri}`);
 })();
