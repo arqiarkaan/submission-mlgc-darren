@@ -13,14 +13,17 @@ async function predictClassification(model, image) {
     const score = await prediction.data();
     const confidenceScore = Math.max(...score) * 100;
 
-    // Hanya ada dua kelas sekarang: Cancer dan Non-cancer
-    const isCancer = tf.argMax(prediction, 1).dataSync()[0] === 1;
-    const label = isCancer ? 'Cancer' : 'Non-cancer';
-    const suggestion = isCancer
-      ? 'Segera periksa ke dokter!'
-      : 'Penyakit kanker tidak terdeteksi.';
+    let result = {
+      confidenceScore,
+      label: 'Cancer',
+      suggestion: 'Segera periksa ke dokter!',
+    };
+    if (confidenceScore < 1) {
+      result.label = 'Non-cancer';
+      result.suggestion = 'Penyakit kanker tidak terdeteksi.';
+    }
 
-    return { confidenceScore, label, suggestion };
+    return result;
   } catch (error) {
     throw new InputError(`Terjadi kesalahan dalam melakukan prediksi`);
   }
